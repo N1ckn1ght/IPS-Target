@@ -27,6 +27,8 @@ class TraceActivity : AppCompatActivity() {
         setContentView(R.layout.activity_trace)
 
         window.decorView.setBackgroundColor(Color.WHITE)
+        tvTable = findViewById(R.id.table)
+
         id = intent.getIntExtra("id", 0)
         table = intent.getIntExtra("table", 0)
         tvTable.text = table.toString()
@@ -62,15 +64,17 @@ class TraceActivity : AppCompatActivity() {
         Log.d(TAG, "Ranged: ${beacons.count()} beacons")
 
         if (BeaconManager.getInstanceForApplication(this).rangedRegions.isNotEmpty()) {
-            val sb = beacons.sortedBy { it.distance }
-            if (sb[0].distance < 0.51) {
-                if (sb[0].id3.toString() == id.toString()) {
-                    window.decorView.setBackgroundColor(Color.GREEN)
-                } else {
-                    window.decorView.setBackgroundColor(Color.RED)
+            if (beacons.count() > 0) {
+                val sb = beacons.sortedBy { it.distance }
+                if (sb[0].distance < 0.51) {
+                    if (sb[0].id3.toString() == id.toString()) {
+                        window.decorView.setBackgroundColor(Color.GREEN)
+                    } else {
+                        window.decorView.setBackgroundColor(Color.RED)
+                    }
+                } else if (sb[0].id3.toString() == id.toString()) {
+                    window.decorView.setBackgroundColor(Color.WHITE)
                 }
-            } else if (sb[0].id3.toString() == id.toString()) {
-                window.decorView.setBackgroundColor(Color.WHITE)
             }
         }
     }

@@ -11,13 +11,13 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-    lateinit var etInput: EditText
-    lateinit var tvTables: TextView
-    lateinit var btGen: Button
-    lateinit var btGet: Button
+    private lateinit var etInput: EditText
+    private lateinit var tvTables: TextView
+    private lateinit var btGen: Button
+    private lateinit var btGet: Button
 
-    lateinit var beacons: MutableList<Int>
-    lateinit var tables: List<Int>
+    private lateinit var beacons: MutableList<Int>
+    private lateinit var tables: List<Int>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         else {
             beacons.add(id)
             etInput.setText("")
-            tvTables.text = tvTables.toString() + "${id}\n"
+            tvTables.text = tvTables.text.toString() + "${id}\n"
 
             btGen.isEnabled = true
             btGen.isClickable = true

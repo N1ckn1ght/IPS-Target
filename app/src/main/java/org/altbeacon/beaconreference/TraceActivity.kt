@@ -3,13 +3,10 @@ package org.altbeacon.beaconreference
 import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
@@ -18,31 +15,29 @@ import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.MonitorNotifier
 
 class TraceActivity : AppCompatActivity() {
-    lateinit var beaconListView: ListView
-    lateinit var beaconCountTextView: TextView
-    lateinit var monitoringButton: Button
-    lateinit var rangingButton: Button
-    lateinit var beaconReferenceApplication: BeaconReferenceApplication
-    var alertDialog: AlertDialog? = null
-    var neverAskAgainPermissions = ArrayList<String>()
+    private lateinit var tvTable: TextView
+    private var id: Int = 0
+    private var table: Int = 0
+
+    private lateinit var beaconReferenceApplication: BeaconReferenceApplication
+    private var neverAskAgainPermissions = ArrayList<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trace)
-        beaconReferenceApplication = application as BeaconReferenceApplication
 
+        window.decorView.setBackgroundColor(Color.WHITE)
+        id = intent.getIntExtra("id", 0)
+        table = intent.getIntExtra("table", 0)
+        tvTable.text = table.toString()
+
+        beaconReferenceApplication = application as BeaconReferenceApplication
         // Set up a Live Data observer for beacon data
         val regionViewModel = BeaconManager.getInstanceForApplication(this).getRegionViewModel(beaconReferenceApplication.region)
         // observer will be called each time the monitored regionState changes (inside vs. outside region)
         regionViewModel.regionState.observe(this, monitoringObserver)
         // observer will be called each time a new list of beacons is ranged (typically ~1 second in the foreground)
         regionViewModel.rangedBeacons.observe(this, rangingObserver)
-        rangingButton = findViewById<Button>(R.id.rangingButton)
-        monitoringButton = findViewById<Button>(R.id.monitoringButton)
-        beaconListView = findViewById<ListView>(R.id.beaconList)
-        beaconCountTextView = findViewById<TextView>(R.id.beaconCount)
-        beaconCountTextView.text = "No beacons detected"
-        beaconListView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayOf("--"))
     }
 
     override fun onPause() {
@@ -55,83 +50,29 @@ class TraceActivity : AppCompatActivity() {
         checkPermissions()
     }
 
-    val monitoringObserver = Observer<Int> { state ->
-        var dialogTitle = "Beacons detected"
-        var dialogMessage = "didEnterRegionEvent has fired"
+    private val monitoringObserver = Observer<Int> { state ->
         var stateString = "inside"
         if (state == MonitorNotifier.OUTSIDE) {
-            dialogTitle = "No beacons detected"
-            dialogMessage = "didExitRegionEvent has fired"
-            stateString == "outside"
-            beaconCountTextView.text = "Outside of the beacon region -- no beacons detected"
-            beaconListView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayOf("--"))
-        }
-        else {
-            beaconCountTextView.text = "Inside the beacon region."
+            stateString = "outside"
         }
         Log.d(TAG, "monitoring state changed to : $stateString")
-        val builder =
-            AlertDialog.Builder(this)
-        builder.setTitle(dialogTitle)
-        builder.setMessage(dialogMessage)
-        builder.setPositiveButton(android.R.string.ok, null)
-        alertDialog?.dismiss()
-        alertDialog = builder.create()
-        alertDialog?.show()
     }
 
-    val rangingObserver = Observer<Collection<Beacon>> { beacons ->
+    private val rangingObserver = Observer<Collection<Beacon>> { beacons ->
         Log.d(TAG, "Ranged: ${beacons.count()} beacons")
-        if (BeaconManager.getInstanceForApplication(this).rangedRegions.size > 0) {
-            beaconCountTextView.text = "Ranging enabled: ${beacons.count()} beacon(s) detected"
-            beaconListView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1,
-                beacons
-                    .sortedBy { it.distance }
-                    .map { "${it.id1}\nid2: ${it.id2} id3:  rssi: ${it.rssi}\nest. distance: ${it.distance} m" }.toTypedArray())
-        }
-    }
 
-    fun rangingButtonTapped(view: View) {
-        val beaconManager = BeaconManager.getInstanceForApplication(this)
-        if (beaconManager.rangedRegions.size == 0) {
-            beaconManager.startRangingBeacons(beaconReferenceApplication.region)
-            rangingButton.text = "Stop Ranging"
-            beaconCountTextView.text = "Ranging enabled -- awaiting first callback"
+        if (BeaconManager.getInstanceForApplication(this).rangedRegions.isNotEmpty()) {
+            val sb = beacons.sortedBy { it.distance }
+            if (sb[0].distance < 0.51) {
+                if (sb[0].id3.toString() == id.toString()) {
+                    window.decorView.setBackgroundColor(Color.GREEN)
+                } else {
+                    window.decorView.setBackgroundColor(Color.RED)
+                }
+            } else if (sb[0].id3.toString() == id.toString()) {
+                window.decorView.setBackgroundColor(Color.WHITE)
+            }
         }
-        else {
-            beaconManager.stopRangingBeacons(beaconReferenceApplication.region)
-            rangingButton.text = "Start Ranging"
-            beaconCountTextView.text = "Ranging disabled -- no beacons detected"
-            beaconListView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayOf("--"))
-        }
-    }
-
-    fun monitoringButtonTapped(view: View) {
-        var dialogTitle = ""
-        var dialogMessage = ""
-        val beaconManager = BeaconManager.getInstanceForApplication(this)
-        if (beaconManager.monitoredRegions.size == 0) {
-            beaconManager.startMonitoring(beaconReferenceApplication.region)
-            dialogTitle = "Beacon monitoring started."
-            dialogMessage = "You will see a dialog if a beacon is detected, and another if beacons then stop being detected."
-            monitoringButton.text = "Stop Monitoring"
-
-        }
-        else {
-            beaconManager.stopMonitoring(beaconReferenceApplication.region)
-            dialogTitle = "Beacon monitoring stopped."
-            dialogMessage = "You will no longer see dialogs when becaons start/stop being detected."
-            monitoringButton.text = "Start Monitoring"
-        }
-        val builder =
-            AlertDialog.Builder(this)
-        builder.setTitle(dialogTitle)
-        builder.setMessage(dialogMessage)
-        builder.setPositiveButton(android.R.string.ok, null)
-        alertDialog?.dismiss()
-        alertDialog = builder.create()
-        alertDialog?.show()
-
     }
 
     override fun onRequestPermissionsResult(
@@ -140,7 +81,7 @@ class TraceActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        for (i in 1..permissions.size-1) {
+        for (i in 1 until permissions.size) {
             Log.d(TAG, "onRequestPermissionResult for "+permissions[i]+":" +grantResults[i])
             if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
                 //check if user select "never ask again" when denying any permission
@@ -152,7 +93,7 @@ class TraceActivity : AppCompatActivity() {
     }
 
 
-    fun checkPermissions() {
+    private fun checkPermissions() {
         // basepermissions are for M and higher
         var permissions = arrayOf( Manifest.permission.ACCESS_FINE_LOCATION)
         var permissionRationale ="This app needs fine location permission to detect beacons.  Please grant this now."
@@ -160,7 +101,7 @@ class TraceActivity : AppCompatActivity() {
             permissions = arrayOf( Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.BLUETOOTH_SCAN)
             permissionRationale ="This app needs fine location permission, and bluetooth scan permission to detect beacons.  Please grant all of these now."
         }
-        else if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if ((checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
                 permissions = arrayOf( Manifest.permission.ACCESS_FINE_LOCATION)
                 permissionRationale ="This app needs fine location permission to detect beacons.  Please grant this now."
@@ -170,13 +111,13 @@ class TraceActivity : AppCompatActivity() {
                 permissionRationale ="This app needs background location permission to detect beacons in the background.  Please grant this now."
             }
         }
-        else if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             permissions = arrayOf( Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             permissionRationale ="This app needs both fine location permission and background location permission to detect beacons in the background.  Please grant both now."
         }
         var allGranted = true
         for (permission in permissions) {
-            if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) allGranted = false;
+            if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) allGranted = false
         }
         if (!allGranted) {
             if (neverAskAgainPermissions.count() == 0) {
@@ -204,7 +145,7 @@ class TraceActivity : AppCompatActivity() {
             }
         }
         else {
-            if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                 if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                     != PackageManager.PERMISSION_GRANTED
                 ) {
@@ -232,7 +173,7 @@ class TraceActivity : AppCompatActivity() {
                     }
                 }
             }
-            else if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.S &&
+            else if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S &&
                 (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)
                         != PackageManager.PERMISSION_GRANTED)) {
                 if (shouldShowRequestPermissionRationale(Manifest.permission.BLUETOOTH_SCAN)) {
@@ -259,7 +200,7 @@ class TraceActivity : AppCompatActivity() {
                 }
             }
             else {
-                if (android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                     if (checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                         != PackageManager.PERMISSION_GRANTED
                     ) {
@@ -293,11 +234,11 @@ class TraceActivity : AppCompatActivity() {
     }
 
     companion object {
-        val TAG = "TraceActivity"
-        val PERMISSION_REQUEST_BACKGROUND_LOCATION = 0
-        val PERMISSION_REQUEST_BLUETOOTH_SCAN = 1
-        val PERMISSION_REQUEST_BLUETOOTH_CONNECT = 2
-        val PERMISSION_REQUEST_FINE_LOCATION = 3
+        const val TAG = "TraceActivity"
+        const val PERMISSION_REQUEST_BACKGROUND_LOCATION = 0
+        const val PERMISSION_REQUEST_BLUETOOTH_SCAN = 1
+        const val PERMISSION_REQUEST_BLUETOOTH_CONNECT = 2
+        const val PERMISSION_REQUEST_FINE_LOCATION = 3
     }
 
 }

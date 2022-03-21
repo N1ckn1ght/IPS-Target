@@ -17,7 +17,7 @@ import org.altbeacon.beacon.Beacon
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.MonitorNotifier
 
-class MainActivity : AppCompatActivity() {
+class TraceActivity : AppCompatActivity() {
     lateinit var beaconListView: ListView
     lateinit var beaconCountTextView: TextView
     lateinit var monitoringButton: Button
@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_trace)
         beaconReferenceApplication = application as BeaconReferenceApplication
 
         // Set up a Live Data observer for beacon data
@@ -293,7 +293,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        val TAG = "MainActivity"
+        val TAG = "TraceActivity"
         val PERMISSION_REQUEST_BACKGROUND_LOCATION = 0
         val PERMISSION_REQUEST_BLUETOOTH_SCAN = 1
         val PERMISSION_REQUEST_BLUETOOTH_CONNECT = 2

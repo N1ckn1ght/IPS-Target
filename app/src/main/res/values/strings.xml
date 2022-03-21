@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">IPS Target</string>
+
+    <string name="sample_input">1565</string>
+    <string name="add">Add</string>
+    <string name="gen_tables">Generate</string>
+    <string name="get_table">Random</string>
 </resources>

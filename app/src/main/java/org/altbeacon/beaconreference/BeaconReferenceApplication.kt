@@ -89,7 +89,7 @@ class BeaconReferenceApplication: Application() {
         val builder = Notification.Builder(this, "BeaconReferenceApp")
         builder.setSmallIcon(R.drawable.ic_launcher_background)
         builder.setContentTitle("Scanning for Beacons")
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, TraceActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
                 this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT + PendingIntent.FLAG_IMMUTABLE
         )
@@ -115,7 +115,7 @@ class BeaconReferenceApplication: Application() {
     }
 
     val centralRangingObserver = Observer<Collection<Beacon>> { beacons ->
-        Log.d(MainActivity.TAG, "Ranged: ${beacons.count()} beacons")
+        Log.d(TraceActivity.TAG, "Ranged: ${beacons.count()} beacons")
         for (beacon: Beacon in beacons) {
             Log.d(TAG, "$beacon about ${beacon.distance} meters away")
         }
@@ -127,7 +127,7 @@ class BeaconReferenceApplication: Application() {
             .setContentText("A beacon is nearby.")
             .setSmallIcon(R.drawable.ic_launcher_background)
         val stackBuilder = TaskStackBuilder.create(this)
-        stackBuilder.addNextIntent(Intent(this, MainActivity::class.java))
+        stackBuilder.addNextIntent(Intent(this, TraceActivity::class.java))
         val resultPendingIntent = stackBuilder.getPendingIntent(
             0,
             PendingIntent.FLAG_UPDATE_CURRENT + PendingIntent.FLAG_IMMUTABLE
